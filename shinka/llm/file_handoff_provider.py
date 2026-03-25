@@ -14,6 +14,7 @@ Flow:
 """
 
 import json
+import os
 import time
 import uuid
 from pathlib import Path
@@ -43,10 +44,17 @@ def query_file_handoff(
     Returns a dict compatible with ShinkaEvolve's QueryResult:
     {"content": str, "cost": float, "model_name": str, ...}
     """
+    global HANDOFF_DIR
     if HANDOFF_DIR is None:
-        raise RuntimeError(
-            "Handoff directory not configured. Call set_handoff_dir() first."
-        )
+        # Auto-detect from env var (set by evolve skill before starting shinka-run)
+        env_dir = os.environ.get("SHINKA_HANDOFF_DIR")
+        if env_dir:
+            HANDOFF_DIR = set_handoff_dir(env_dir)
+        else:
+            raise RuntimeError(
+                "Handoff directory not configured. Set SHINKA_HANDOFF_DIR env var "
+                "or call set_handoff_dir() first."
+            )
 
     request_id = uuid.uuid4().hex[:8]
 
@@ -74,6 +82,10 @@ def query_file_handoff(
             completed_path.unlink(missing_ok=True)
             return {
                 "content": response.get("content", ""),
+                "msg": msg,
+                "system_msg": system_msg,
+                "new_msg_history": [],
+                "kwargs": kwargs,
                 "cost": 0.0,
                 "model_name": model_name,
                 "input_tokens": 0,
