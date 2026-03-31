@@ -1,4 +1,5 @@
 from typing import List, Union, Optional
+import os
 import random
 from .providers.pricing import (
     is_reasoning_model,
@@ -9,6 +10,10 @@ from .providers.model_resolver import resolve_model_backend
 import logging
 
 logger = logging.getLogger(__name__)
+
+# When SHINKA_PROVIDER=claude_code, skip model resolution entirely —
+# all queries are routed through file handoff, no API client needed.
+_CLAUDE_CODE_MODE = os.environ.get("SHINKA_PROVIDER", "").lower() == "claude_code"
 
 THINKING_TOKENS = {
     "min": 1024,
@@ -79,6 +84,12 @@ def sample_model_kwargs(
         reasoning_efforts = [reasoning_efforts]
 
     kwargs_dict = {}
+
+    # Claude Code file-handoff mode: skip API-specific kwargs but still
+    # include model_name — query_async() requires it as a positional arg.
+    if _CLAUDE_CODE_MODE:
+        kwargs_dict["model_name"] = "claude_code"
+        return kwargs_dict
 
     # 1. SAMPLE: model name
     if model_sample_probs is not None:
