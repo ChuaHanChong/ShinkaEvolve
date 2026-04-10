@@ -15,7 +15,7 @@ def _build_runner(**overrides):
     runner._last_proposal_target_log = None
     runner.evo_config = SimpleNamespace(
         enable_controlled_oversubscription=overrides.get(
-            "enable_controlled_oversubscription", True
+            "enable_controlled_oversubscription", False
         ),
         proposal_target_mode=overrides.get("proposal_target_mode", "adaptive"),
         proposal_target_min_samples=overrides.get("proposal_target_min_samples", 5),
@@ -28,7 +28,11 @@ def _build_runner(**overrides):
 
 
 def test_compute_proposal_pipeline_target_defaults_to_small_buffer_before_samples():
-    runner = _build_runner(timing_samples=0, proposal_buffer_max=2)
+    runner = _build_runner(
+        enable_controlled_oversubscription=True,
+        timing_samples=0,
+        proposal_buffer_max=2,
+    )
 
     target = runner._compute_proposal_pipeline_target()
 
@@ -37,6 +41,7 @@ def test_compute_proposal_pipeline_target_defaults_to_small_buffer_before_sample
 
 def test_compute_proposal_pipeline_target_adapts_and_clamps():
     runner = _build_runner(
+        enable_controlled_oversubscription=True,
         sampling_ewma=120.0,
         evaluation_ewma=60.0,
         timing_samples=8,
@@ -61,6 +66,23 @@ def test_compute_proposal_pipeline_target_respects_disable_flag():
     target = runner._compute_proposal_pipeline_target()
 
     assert target == 5
+
+
+def test_compute_proposal_pipeline_target_ignores_invalid_hard_cap_below_eval_capacity():
+    runner = _build_runner(
+        enable_controlled_oversubscription=True,
+        sampling_ewma=120.0,
+        evaluation_ewma=60.0,
+        timing_samples=8,
+        proposal_buffer_max=2,
+        max_evaluation_jobs=10,
+        max_proposal_jobs=14,
+        proposal_target_hard_cap=7,
+    )
+
+    target = runner._compute_proposal_pipeline_target()
+
+    assert target == 12
 
 
 def test_record_oversubscription_timing_sample_uses_ewma():

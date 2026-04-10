@@ -46,6 +46,16 @@ def _positive_int(value: str) -> int:
     return parsed
 
 
+def _resolve_runner_bool(
+    cli_value: Optional[bool], runner_config: Dict[str, Any], key: str, default: bool
+) -> bool:
+    if cli_value is not None:
+        return cli_value
+    if key in runner_config:
+        return bool(runner_config[key])
+    return default
+
+
 def _build_parser() -> argparse.ArgumentParser:
     description = (
         "Run async Shinka evolution from a task directory.\n\n"
@@ -176,8 +186,9 @@ def _build_parser() -> argparse.ArgumentParser:
     output_group = parser.add_argument_group("output/verbosity")
     output_group.add_argument(
         "--verbose",
-        action="store_true",
-        help="Enable verbose runner logging.",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Enable verbose runner logging (default: enabled; use --no-verbose to disable).",
     )
     output_group.add_argument(
         "--debug",
@@ -397,6 +408,7 @@ def _build_runner(
         "evo_config": evo_config,
         "job_config": job_config,
         "db_config": db_config,
+        "banner_style": "minimal",
         "verbose": args.verbose,
         "debug": args.debug,
         "init_program_str": init_program_str,
@@ -454,7 +466,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             args.max_proposal_jobs = runner_config.get("max_proposal_jobs")
         if args.max_db_workers is None:
             args.max_db_workers = runner_config.get("max_db_workers")
-        args.verbose = args.verbose or bool(runner_config.get("verbose", False))
+        args.verbose = _resolve_runner_bool(
+            args.verbose, runner_config, "verbose", True
+        )
         args.debug = args.debug or bool(runner_config.get("debug", False))
 
         evo_config = EvolutionConfig(**evo_values)

@@ -1,6 +1,8 @@
-# Shinka Configuration Guide ⚙️
+# Configuration Guide
 
 This document is synced to the current code + config files in this repo.
+
+---
 
 ## Default Layers (Source of Truth)
 
@@ -14,6 +16,8 @@ Configuration values are resolved in this order (later wins):
 3. Task/cluster/variant overrides from Hydra composition
 4. CLI overrides (`shinka_launch ... key=value`, or `shinka_run --set ...`)
 5. Authoritative `shinka_run` flags (`--results_dir`, `--num_generations`)
+
+---
 
 ## Runtime Config Objects
 
@@ -40,7 +44,7 @@ Concurrency is configured on `ShinkaEvolveRunner`, not on `EvolutionConfig`.
 | `meta_llm_kwargs` | `dict` | `{}` | kwargs for meta-recommendation LLM calls. |
 | `meta_max_recommendations` | `int` | `5` | Max recommendations produced per meta step. |
 | `sample_single_meta_rec` | `bool` | `True` | Whether to sample one recommendation when multiple exist. |
-| `embedding_model` | `Optional[str]` | `'text-embedding-3-small'` | Embedding model for code similarity. Also supports `local/<model>@http(s)://host[:port]/v1` for local OpenAI-compatible embedding endpoints. |
+| `embedding_model` | `Optional[str]` | `'text-embedding-3-small'` | Embedding model for code similarity. Also supports `local/<model>@http(s)://host[:port]/v1` for local OpenAI-compatible embedding endpoints, with optional `?api_key_env=ENV_VAR` for per-model credentials. |
 | `init_program_path` | `Optional[str]` | `'initial.py'` | Initial program path. |
 | `results_dir` | `Optional[str]` | `None` | Results directory; auto-assigned when `None`. |
 | `max_novelty_attempts` | `int` | `3` | Max novelty loops per generation. |
@@ -49,7 +53,7 @@ Concurrency is configured on `ShinkaEvolveRunner`, not on `EvolutionConfig`.
 | `novelty_llm_kwargs` | `dict` | `{}` | kwargs for novelty-judge LLM calls. |
 | `use_text_feedback` | `bool` | `False` | Include text feedback in mutation prompts. |
 | `max_api_costs` | `Optional[float]` | `None` | API budget cap in USD; stops new submissions at cap. |
-| `enable_controlled_oversubscription` | `bool` | `True` | Enable bounded proposal oversubscription when proposal generation is slower than evaluation. |
+| `enable_controlled_oversubscription` | `bool` | `False` | Enable bounded proposal oversubscription when proposal generation is slower than evaluation. |
 | `proposal_target_mode` | `str` | `'adaptive'` | Proposal target controller mode: `adaptive` or `fixed`. |
 | `proposal_target_min_samples` | `int` | `5` | Minimum completed timing samples required before adaptive targeting activates. |
 | `proposal_target_ratio_cap` | `float` | `2.0` | Maximum sampling/evaluation ratio used by the adaptive controller. |
@@ -141,7 +145,9 @@ Concurrency is configured on `ShinkaEvolveRunner`, not on `EvolutionConfig`.
 
 `conda_env` and `activate_script` are mutually exclusive.
 
-## Hydra Presets In `shinka/configs/`
+---
+
+## Hydra Presets
 
 ### Evolution Presets
 
@@ -192,7 +198,7 @@ evo_config:
   meta_rec_interval: 10
   embedding_model: "text-embedding-3-small"
   code_embed_sim_threshold: 0.99
-  enable_controlled_oversubscription: true
+  enable_controlled_oversubscription: false
   proposal_target_mode: adaptive
   proposal_target_min_samples: 5
   proposal_target_ratio_cap: 2.0
@@ -229,7 +235,7 @@ evo_config:
   meta_llm_kwargs:
     temperatures: [0.0]
   embedding_model: "text-embedding-3-small"
-  enable_controlled_oversubscription: true
+  enable_controlled_oversubscription: false
   proposal_target_mode: adaptive
   proposal_target_min_samples: 5
   proposal_target_ratio_cap: 2.0
@@ -350,6 +356,8 @@ Only these task files currently exist:
 
 Both define task-specific `evaluate_function`, `distributed_job_config`, and `evo_config` task prompt/init path.
 
+---
+
 ## Current Hydra Composition Defaults
 
 `shinka/configs/config.yaml` defaults chain:
@@ -368,6 +376,8 @@ So default `shinka_launch` behavior is a neutral medium shared baseline on the
 `circle_packing` task with `variant=default`. Example-heavy stacks remain
 available via explicit variants such as `variant=circle_packing_example`.
 
+---
+
 ## `shinka_run` Config File Schema
 
 `shinka_run --config-fname <yaml>` accepts:
@@ -384,7 +394,9 @@ Precedence for `shinka_run`:
    - `--results_dir` always sets `evo.results_dir`
    - `--num_generations` always sets `evo.num_generations`
 
-## Current Config Directory Structure
+---
+
+## Config Directory Structure
 
 ```text
 shinka/configs/
@@ -409,6 +421,8 @@ shinka/configs/
     ├── default.yaml
     └── novelty_generator_example.yaml
 ```
+
+---
 
 ## Quick Valid Overrides
 
