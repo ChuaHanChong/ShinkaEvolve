@@ -7,17 +7,32 @@ All notable changes to `shinka-evolve` are documented in this file.
 ### Added
 
 - Added the GitHub Pages documentation website for `shinka-evolve`.
+- Added dashboard sorting controls to the local WebUI so result cards can be reordered by the active setting.
+- Added a `Hide Plot` / `Show Plot` toggle for the WebUI Throughput tab runtime timeline while keeping the plot visible by default.
+- Added Claude Opus 4.7 pricing entries for the Anthropic API and Amazon Bedrock (`anthropic.claude-opus-4-7`) in the LLM pricing catalog.
 
 ### Changed
 
 - Changed `shinka_run` startup output to use a minimal `Shinka CLI` banner while other launch paths keep the full gradient banner.
 - Changed `enable_controlled_oversubscription` to default to `false` across the shared `EvolutionConfig` baseline and packaged Hydra evolution presets.
+- Changed the WebUI meta header to show the active results directory directly in the info panel.
+- Changed the WebUI Throughput tab runtime timeline to scale its height with worker-lane count so each worker keeps a dedicated visible row.
 
 ### Fixed
 
+- Fixed async run-time regressions from proposal-failure persistence by keeping terminal failed proposals in `attempt_log` plus `failure.json` artifacts instead of inserting them into the main `programs` table during evolution runs.
+- Fixed the local WebUI to render failed proposal nodes from `attempt_log` plus `failure.json` so failure lineage remains visible without storing synthetic failed programs in the main results database.
+- Fixed failed terminal proposal and prompt-evolution cost accounting so the runtime API budget counter now reflects those spend buckets, and added runtime-timeline metadata for failed proposal nodes rendered from `attempt_log`.
 - Fixed bandit summary tables to preserve readable `local/<model>` and `openrouter/<model>` labels while stripping endpoint and API-key query details from local OpenAI-compatible model labels.
+- Fixed the LLM bandit sampling summary to use the same 120-column table width as the program, patch, and other Rich summaries.
+- Fixed the default `AsymmetricUCB` bandit summary to omit the `div` and `log mean` columns for a more compact Rich table.
+- Fixed the compare view so negative best scores remain visible instead of being clamped away by the WebUI summary logic.
 - Fixed documentation links and metadata URLs to use the deployed GitHub Pages path capitalization (`/ShinkaEvolve/`).
 - Fixed oversubscription regression coverage and docs so adaptive proposal backlog behavior is now clearly opt-in instead of implied by defaults.
+- Fixed Gemini client timeout handling so the shared second-based timeout is converted to the millisecond unit expected by `google-genai`, avoiding accidental `1.2s` read timeouts on long-running requests.
+- Fixed async runtime regressions from sampling/evaluation worker-lane persistence by falling back to timestamp-based throughput lane inference instead of storing those lane IDs in program metadata.
+- Fixed local WebUI cache staleness by disabling browser caching for the main HTML shells (`index.html`, `viz_tree.html`, `compare.html`) served by the local visualization server.
+- Fixed WebUI Throughput tab hydration so `right_tab=throughput` restores reliably after data loads and the generation runtime timeline renders pool stages using timestamp-inferred sampling/evaluation lanes on the current Plotly build.
 
 ## 0.0.4 - 2026-04-06
 
