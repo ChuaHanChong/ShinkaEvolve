@@ -110,6 +110,9 @@ def sample_model_kwargs(
     api_model_name = resolved_model.api_model_name
     provider = resolved_model.provider
 
+    if provider == "headless":
+        return kwargs_dict
+
     # 2. SAMPLE: reasoning effort
     if is_reasoning_model(api_model_name):
         r_effort = random.choice(reasoning_efforts)

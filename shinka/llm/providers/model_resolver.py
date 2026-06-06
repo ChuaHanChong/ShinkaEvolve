@@ -5,6 +5,7 @@ from shinka.local_openai_config import parse_local_openai_model
 from .pricing import get_provider
 
 _OPENROUTER_PREFIX = "openrouter/"
+_HEADLESS_PREFIX = "headless/"
 
 
 @dataclass(frozen=True)
@@ -18,6 +19,20 @@ class ResolvedModel:
 
 def resolve_model_backend(model_name: str) -> ResolvedModel:
     """Resolve runtime backend info for known and dynamic model identifiers."""
+    if model_name.startswith(_HEADLESS_PREFIX):
+        api_model_name = model_name
+        agent = (
+            model_name.split(_HEADLESS_PREFIX, 1)[-1].split("?", 1)[0].split("@", 1)[0]
+        )
+        if not agent:
+            raise ValueError("Headless model name is missing after 'headless/' prefix.")
+        return ResolvedModel(
+            original_model_name=model_name,
+            api_model_name=api_model_name,
+            provider="headless",
+            base_url=None,
+        )
+
     provider = get_provider(model_name)
     if provider is not None:
         return ResolvedModel(

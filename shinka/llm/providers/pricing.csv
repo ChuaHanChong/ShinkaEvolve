@@ -15,6 +15,8 @@ claude-haiku-4-5-20251001,anthropic,1.0,5.0,,,," True"," 1"," 0"
 us.anthropic.claude-haiku-4-5-20251001-v1:0,bedrock,1.0,5.0,,,," True"," 1"," 0"
 claude-opus-4-5-20251101,anthropic,5.0,25.0,,,,True,1,0
 global.anthropic.claude-opus-4-5-20251101-v1:0,bedrock,5.0,25.0,,,,True,1,0
+claude-opus-4-8,anthropic,5.0,25.0,,,,False,0,0
+us.anthropic.claude-opus-4-8,bedrock,5.0,25.0,,,,False,0,0
 claude-opus-4-7,anthropic,5.0,25.0,,,,False,0,0
 anthropic.claude-opus-4-7,bedrock,5.0,25.0,,,,False,0,0
 claude-opus-4-6,anthropic,5.0,25.0,10.0,37.5,200000,True,1,0
@@ -31,6 +33,8 @@ gpt-4.1-nano,openai,0.1,1.4,,,," False"," 0"," 0"
 o3-2025-04-16,openai,10.0,40.0,,,," True"," 1"," 0"
 o4-mini-2025-04-16,openai,1.1,4.4,,,," True"," 1"," 0"
 o4-mini,openai,1.1,4.4,,,," True"," 1"," 0"
+gpt-5.5,openai,5.0,30.0,10.0,45.0,272000,True,1,1
+gpt-5.5-pro,openai,30.0,180.0,60.0,270.0,272000,True,1,1
 gpt-5.4,openai,2.5,15.0,5.0,22.5,272000,True,1,1
 gpt-5.4-pro,openai,30.0,180.0,60.0,270.0,272000,True,1,1
 gpt-5.4-mini,openai,0.75,4.5,,,,True,1,1
@@ -48,6 +52,7 @@ gpt-5.3-codex,openai,1.75,14.0,,,,True,1,1
 gpt-5.2-pro,openai,21.0,168.0,,,,True,1,1
 deepseek-chat,deepseek,0.28,0.42,,,," False"," 0"," 0"
 deepseek-reasoner,deepseek,0.28,0.42,,,," True"," 0"," 0"
+gemini-3.5-flash,google,1.5,9.0,,,,True,0,0
 gemini-3-flash-preview,google,0.5,3.0,,,,True,0,0
 gemini-3-pro-preview,google,2.0,12.0,4.0,18.0,200000,True,0,0
 gemini-3.1-pro-preview,google,2.0,12.0,4.0,18.0,200000,True,0,0

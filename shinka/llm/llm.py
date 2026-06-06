@@ -9,6 +9,7 @@ import time
 from .query import query, query_async
 from .kwargs import sample_model_kwargs
 from .providers import QueryResult
+from .providers.model_resolver import resolve_model_backend
 
 MAX_RETRIES = 3
 
@@ -25,6 +26,7 @@ class LLMClient:
         model_sample_probs: Optional[List[float]] = None,
         output_model: Optional[BaseModel] = None,
         verbose: bool = True,
+        headless_work_dir: Optional[str] = None,
     ):
         self.temperatures = temperatures
         self.max_tokens = max_tokens
@@ -36,6 +38,15 @@ class LLMClient:
         self.output_model = output_model
         self.structured_output = output_model is not None
         self.verbose = verbose
+        self.headless_work_dir = headless_work_dir
+
+    def _attach_headless_work_dir(self, llm_kwargs: Dict) -> Dict:
+        model_name = llm_kwargs.get("model_name")
+        if not model_name or self.headless_work_dir is None:
+            return llm_kwargs
+        if resolve_model_backend(model_name).provider != "headless":
+            return llm_kwargs
+        return {**llm_kwargs, "headless_work_dir": self.headless_work_dir}
 
     def batch_query(
         self,
@@ -67,6 +78,7 @@ class LLMClient:
             # Submit all tasks asynchronously first
             async_results = []
             for i in range(len(msg)):
+                query_kwargs = self._attach_headless_work_dir(llm_kwargs[i])
                 async_results.append(
                     pool.apply_async(
                         query_fn,
@@ -75,7 +87,7 @@ class LLMClient:
                             msg[i],
                             system_msg[i],
                             msg_history[i],
-                            llm_kwargs[i],
+                            query_kwargs,
                             num_samples,
                             self.output_model,
                             self.verbose,
@@ -173,6 +185,7 @@ class LLMClient:
                             self.output_model,
                             num_samples,
                             self.verbose,
+                            self.headless_work_dir,
                         ),
                     )
                 )
@@ -224,12 +237,14 @@ class LLMClient:
             for name, prob in zip(self.model_names, probs_to_display):
                 lines.append(f"  {name:<30} {prob:>8.4f}")
             logger.info("\n".join(lines))
-        return sample_model_kwargs(
-            model_names=self.model_names,
-            temperatures=self.temperatures,
-            max_tokens=self.max_tokens,
-            reasoning_efforts=self.reasoning_efforts,
-            model_sample_probs=posterior,
+        return self._attach_headless_work_dir(
+            sample_model_kwargs(
+                model_names=self.model_names,
+                temperatures=self.temperatures,
+                max_tokens=self.max_tokens,
+                reasoning_efforts=self.reasoning_efforts,
+                model_sample_probs=posterior,
+            )
         )
 
     def query(
@@ -269,6 +284,7 @@ class LLMClient:
                 reasoning_efforts=self.reasoning_efforts,
                 model_sample_probs=posterior,
             )
+            llm_kwargs = self._attach_headless_work_dir(llm_kwargs)
         elif "model_name" not in llm_kwargs:
             # llm_kwargs provided but missing model_name - sample one and merge
             sampled_kwargs = sample_model_kwargs(
@@ -280,6 +296,9 @@ class LLMClient:
             )
             # Merge: provided kwargs override sampled ones, but add model_name
             llm_kwargs = {**sampled_kwargs, **llm_kwargs}
+            llm_kwargs = self._attach_headless_work_dir(llm_kwargs)
+        else:
+            llm_kwargs = self._attach_headless_work_dir(llm_kwargs)
         if self.verbose:
             kwargs_str = [str(v) for v in llm_kwargs.values()]
             logger.info(f"==> QUERYING: {kwargs_str}")
@@ -320,6 +339,7 @@ class AsyncLLMClient:
         model_sample_probs: Optional[List[float]] = None,
         output_model: Optional[BaseModel] = None,
         verbose: bool = True,
+        headless_work_dir: Optional[str] = None,
     ):
         self.temperatures = temperatures
         self.max_tokens = max_tokens
@@ -331,6 +351,15 @@ class AsyncLLMClient:
         self.output_model = output_model
         self.structured_output = output_model is not None
         self.verbose = verbose
+        self.headless_work_dir = headless_work_dir
+
+    def _attach_headless_work_dir(self, llm_kwargs: Dict) -> Dict:
+        model_name = llm_kwargs.get("model_name")
+        if not model_name or self.headless_work_dir is None:
+            return llm_kwargs
+        if resolve_model_backend(model_name).provider != "headless":
+            return llm_kwargs
+        return {**llm_kwargs, "headless_work_dir": self.headless_work_dir}
 
     async def batch_query(
         self,
@@ -359,13 +388,14 @@ class AsyncLLMClient:
         # Create async tasks
         tasks = []
         for i in range(len(msg)):
+            query_kwargs = self._attach_headless_work_dir(llm_kwargs[i])
             tasks.append(
                 self._query_async_with_retry(
                     i,
                     msg[i],
                     system_msg[i],
                     msg_history[i],
-                    llm_kwargs[i],
+                    query_kwargs,
                     num_samples,
                 )
             )
@@ -496,12 +526,14 @@ class AsyncLLMClient:
             for name, prob in zip(self.model_names, probs_to_display):
                 lines.append(f"  {name:<30} {prob:>8.4f}")
             logger.info("\n".join(lines))
-        return sample_model_kwargs(
-            model_names=self.model_names,
-            temperatures=self.temperatures,
-            max_tokens=self.max_tokens,
-            reasoning_efforts=self.reasoning_efforts,
-            model_sample_probs=posterior,
+        return self._attach_headless_work_dir(
+            sample_model_kwargs(
+                model_names=self.model_names,
+                temperatures=self.temperatures,
+                max_tokens=self.max_tokens,
+                reasoning_efforts=self.reasoning_efforts,
+                model_sample_probs=posterior,
+            )
         )
 
     async def query(
@@ -541,6 +573,7 @@ class AsyncLLMClient:
                 reasoning_efforts=self.reasoning_efforts,
                 model_sample_probs=posterior,
             )
+            llm_kwargs = self._attach_headless_work_dir(llm_kwargs)
         elif "model_name" not in llm_kwargs:
             # llm_kwargs provided but missing model_name - sample one and merge
             sampled_kwargs = sample_model_kwargs(
@@ -552,6 +585,9 @@ class AsyncLLMClient:
             )
             # Merge: provided kwargs override sampled ones, but add model_name
             llm_kwargs = {**sampled_kwargs, **llm_kwargs}
+            llm_kwargs = self._attach_headless_work_dir(llm_kwargs)
+        else:
+            llm_kwargs = self._attach_headless_work_dir(llm_kwargs)
         if self.verbose:
             kwargs_str = [str(v) for v in llm_kwargs.values()]
             logger.info(f"==> QUERYING: {kwargs_str}")
@@ -592,6 +628,7 @@ class AsyncLLMClient:
         kwargs: Dict = {},
         total_samples: int = 1,
     ) -> tuple[int, Optional[QueryResult]]:
+        kwargs = self._attach_headless_work_dir(kwargs)
         if self.verbose:
             kwargs_str = [str(v) for v in kwargs.values()]
             logger.info(f"==> SAMPLING: {idx + 1}/{total_samples} {kwargs_str}")
@@ -631,6 +668,7 @@ class AsyncLLMClient:
             reasoning_efforts=self.reasoning_efforts,
             model_sample_probs=model_sample_probs,
         )
+        kwargs = self._attach_headless_work_dir(kwargs)
 
         # Create model_posteriors dict from model_names and model_sample_probs
         model_posteriors = None
@@ -711,6 +749,7 @@ def sample_kwargs_query_fn(
     output_model: Optional[BaseModel] = None,
     total_samples: int = 1,
     verbose: bool = False,
+    headless_work_dir: Optional[str] = None,
 ) -> tuple[int, Optional[QueryResult]]:
     kwargs = sample_model_kwargs(
         model_names=model_names,
@@ -719,6 +758,13 @@ def sample_kwargs_query_fn(
         reasoning_efforts=reasoning_efforts,
         model_sample_probs=model_sample_probs,
     )
+    model_name = kwargs.get("model_name")
+    if (
+        model_name
+        and headless_work_dir is not None
+        and resolve_model_backend(model_name).provider == "headless"
+    ):
+        kwargs = {**kwargs, "headless_work_dir": headless_work_dir}
 
     # Create model_posteriors dict from model_names and model_sample_probs
     model_posteriors = None

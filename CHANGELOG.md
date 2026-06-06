@@ -2,11 +2,46 @@
 
 All notable changes to `shinka-evolve` are documented in this file.
 
-## 0.0.5 - Unreleased
+## TBD
+
+## 0.0.7 - 2026-06-02
+
+### Added
+
+- Added Gemini 3.5 Flash pricing to the Google LLM pricing catalog.
+- Added Claude Opus 4.8 pricing entries for the Anthropic API and Amazon Bedrock (`us.anthropic.claude-opus-4-8`) in the LLM pricing catalog.
+- Added Wolfram Language as a first-class evolution target: registry entries (`wolfram`, `wl`, `wls`, `mathematica`), code-fence and EVOLVE-BLOCK marker support, and end-to-end coverage in `apply_diff` / `apply_full`.
+- Added EVOLVE-BLOCK marker validation in `shinka.edit.marker_validation`, catching the LLM failure mode where a block-comment-language marker is emitted without its closing delimiter (Wolfram, Markdown), which would silently trap the candidate body inside a comment.
+- Added the `examples/wolfram_gcd_sum` task: deoptimized seed for `S(N) = sum_{i,j in 1..N} GCD(i,j)`. The evaluator calibrates the baseline on every run by timing the seed through the same `RepeatedTiming` harness as the candidate, and the Wolfram-side timeout is configurable via `WOLFRAM_GCD_MAX_SECONDS`.
+- Added Go as a first-class evolution target with `go`/`golang` language registration, `.go` task detection, WebUI failure-artifact support, regression coverage, and the `examples/go_collatz_steps` task.
+
+### Fixed
+
+- Fixed the WebUI dashboard so runs that have completed only the initial generation remain visible instead of being filtered out as empty results.
+- Fixed the WebUI Ensembling tab so single-model Headless runs render visible data points and keep the top y-axis tick labels in view.
+
+## 0.0.6 - 2026-05-03
+
+### Added
+
+- Added Headless CLI-backed LLM provider support via `headless/<agent>` model strings, defaulting to `npx -y @roberttlange/headless` for subscription-backed Codex, Claude, and other local agent calls.
+- Added Headless startup validation, prompt artifacts, usage/cost parsing, and a `examples/sine_approx_headless` task showing API-free mutation calls with embeddings disabled.
+- Added Vertex AI authentication support for Gemini LLM and embedding clients in PR #125. Thanks @wu375.
+- Added async-runner validation for configured LLM and embedding model environment access before run artifacts are created in PR #127. Thanks @RobertTLange.
+- Added GPT-5.5 and GPT-5.5 Pro entries to the OpenAI LLM pricing catalog.
+- Added Fortran evolution support, including language detection, patch application, validation, visualization metadata, and a compiled heat-diffusion example in PR #131.
+
+### Fixed
+
+- Fixed bandit sampler resume from legacy or changed `llm_models` state so saved per-arm arrays are resized, name-aligned when possible, and cost-aware UCB range state remains active after loading `bandit_state.pkl` in PR #130, addressing issue #129.
+- Fixed the WebUI embedding similarity heatmap so hydrated programs with empty embeddings no longer leave the tab stuck on `Loading full embedding data...`, and stale cached full-program data is refetched after summary updates.
+
+## 0.0.5 - 2026-04-22
 
 ### Added
 
 - Added the GitHub Pages documentation website for `shinka-evolve`.
+- Added interactive async-throughput and UCB bandit-selection demos to the documentation website.
 - Added dashboard sorting controls to the local WebUI so result cards can be reordered by the active setting.
 - Added a `Hide Plot` / `Show Plot` toggle for the WebUI Throughput tab runtime timeline while keeping the plot visible by default.
 - Added Claude Opus 4.7 pricing entries for the Anthropic API and Amazon Bedrock (`anthropic.claude-opus-4-7`) in the LLM pricing catalog.

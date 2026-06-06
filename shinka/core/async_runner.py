@@ -15,7 +15,7 @@ import psutil
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Dict, Any, Set, Tuple, Union
+from typing import List, Optional, Dict, Any, Set, Tuple, Union, Iterable
 from dataclasses import dataclass, field
 from rich.console import Console
 from rich.table import Table
@@ -61,6 +61,7 @@ from shinka.core.prompt_evolver import (
 )
 from shinka.core.runtime_slots import LogicalSlotPool
 from shinka.logo import BannerStyle, get_logo_ascii, print_gradient_logo
+from shinka.model_availability import validate_model_env_access
 from shinka.utils import get_language_extension, parse_time_to_seconds
 from shinka.utils.languages import get_evolve_comment_prefix
 
@@ -175,6 +176,46 @@ class CompletedJobPersistResult:
     persisted_event: Optional[PersistedProgramEvent] = None
 
 
+def _dedupe_model_names(model_names: Iterable[str]) -> list[str]:
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for model_name in model_names:
+        if model_name in seen:
+            continue
+        seen.add(model_name)
+        deduped.append(model_name)
+    return deduped
+
+
+def _llm_kwargs_with_headless_work_dir(
+    llm_kwargs: Dict[str, Any],
+    results_dir: Path,
+) -> Dict[str, Any]:
+    return {"headless_work_dir": str(results_dir), **llm_kwargs}
+
+
+def _validate_evo_config_model_env_access(evo_config: EvolutionConfig) -> None:
+    llm_models = list(evo_config.llm_models)
+
+    if evo_config.meta_rec_interval and evo_config.meta_llm_models:
+        llm_models.extend(evo_config.meta_llm_models)
+
+    if evo_config.novelty_llm_models:
+        llm_models.extend(evo_config.novelty_llm_models)
+
+    if evo_config.evolve_prompts and evo_config.prompt_llm_models:
+        llm_models.extend(evo_config.prompt_llm_models)
+
+    embedding_models = (
+        [evo_config.embedding_model] if evo_config.embedding_model else []
+    )
+
+    validate_model_env_access(
+        llm_models=_dedupe_model_names(llm_models),
+        embedding_models=_dedupe_model_names(embedding_models),
+    )
+
+
 class ShinkaEvolveRunner:
     """Fully async evolution runner with concurrent proposal generation."""
 
@@ -210,6 +251,8 @@ class ShinkaEvolveRunner:
             evaluate_str: Optional string content for evaluate script
                 (will be saved to results dir and path updated in job_config)
         """
+        _validate_evo_config_model_env_access(evo_config)
+
         self.verbose = verbose
         # Setup results directory first
         if evo_config.results_dir is None:
@@ -347,7 +390,10 @@ class ShinkaEvolveRunner:
         # LLM clients
         self.llm = AsyncLLMClient(
             model_names=evo_config.llm_models,
-            **evo_config.llm_kwargs,
+            **_llm_kwargs_with_headless_work_dir(
+                evo_config.llm_kwargs,
+                Path(self.results_dir),
+            ),
         )
 
         # Embedding client (use async version for async runner)
@@ -378,7 +424,10 @@ class ShinkaEvolveRunner:
             # Create async LLM client for meta analysis
             async_meta_llm = AsyncLLMClient(
                 model_names=evo_config.meta_llm_models or evo_config.llm_models,
-                **evo_config.meta_llm_kwargs,
+                **_llm_kwargs_with_headless_work_dir(
+                    evo_config.meta_llm_kwargs,
+                    Path(self.results_dir),
+                ),
             )
             # Create sync summarizer for state management
             sync_meta_summarizer = MetaSummarizer(
@@ -400,7 +449,10 @@ class ShinkaEvolveRunner:
         if evo_config.novelty_llm_models:
             novelty_llm = AsyncLLMClient(
                 model_names=evo_config.novelty_llm_models,
-                **evo_config.novelty_llm_kwargs,
+                **_llm_kwargs_with_headless_work_dir(
+                    evo_config.novelty_llm_kwargs,
+                    Path(self.results_dir),
+                ),
             )
             sync_novelty_judge = NoveltyJudge(
                 novelty_llm_client=None,  # We'll use async version
@@ -432,7 +484,10 @@ class ShinkaEvolveRunner:
             prompt_llm_models = evo_config.prompt_llm_models or evo_config.llm_models
             self.prompt_llm = AsyncLLMClient(
                 model_names=prompt_llm_models,
-                **evo_config.prompt_llm_kwargs,
+                **_llm_kwargs_with_headless_work_dir(
+                    evo_config.prompt_llm_kwargs,
+                    Path(self.results_dir),
+                ),
             )
             logger.info(f"Prompt evolution enabled with models: {prompt_llm_models}")
         else:
@@ -2956,6 +3011,17 @@ class ShinkaEvolveRunner:
             response_file = attempt_dir / "llm_response.txt"
             await write_file_async(str(response_file), response.content)
 
+        response_kwargs = getattr(response, "kwargs", {}) if response else {}
+        headless_prompt_path = response_kwargs.get("headless_prompt_path")
+        if headless_prompt_path:
+            prompt_source = Path(headless_prompt_path)
+            if prompt_source.exists():
+                prompt_file = attempt_dir / "headless_prompt.md"
+                await write_file_async(
+                    str(prompt_file),
+                    prompt_source.read_text(encoding="utf-8"),
+                )
+
         # Save patch text if available
         if patch_text:
             patch_file = attempt_dir / "patch.txt"
@@ -2977,7 +3043,11 @@ class ShinkaEvolveRunner:
 
         if response:
             metadata["llm_cost"] = response.cost
-            metadata["llm_model"] = getattr(response, "model", None)
+            metadata["llm_model"] = getattr(response, "model_name", None)
+            if headless_prompt_path:
+                metadata["headless_prompt_path"] = str(
+                    attempt_dir / "headless_prompt.md"
+                )
 
         metadata_file = attempt_dir / "metadata.json"
         await write_file_async(str(metadata_file), json.dumps(metadata, indent=2))
@@ -3078,6 +3148,11 @@ class ShinkaEvolveRunner:
             "cc": "cpp",
             "cxx": "cpp",
             "cu": "cuda",
+            "go": "go",
+            "f90": "fortran",
+            "f95": "fortran",
+            "f03": "fortran",
+            "f08": "fortran",
         }.get(ext, ext or "python")
 
     async def _write_failure_artifact_async(
