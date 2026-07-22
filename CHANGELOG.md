@@ -4,6 +4,41 @@ All notable changes to `shinka-evolve` are documented in this file.
 
 ## TBD
 
+### Added
+
+- Added optional Weights & Biases logging with resumable run IDs, per-individual
+  scores, timing and cost metrics, and final run summaries in PR #149. Thanks
+  @anantgar.
+- Added Verilog/SystemVerilog as a first-class evolution target in PR #137,
+  including `.sv` task detection, syntax validation, EVOLVE-BLOCK marker support,
+  failure-artifact rendering, and a self-contained RTLLM example. Thanks @Tyronita.
+- Added startup pricing refresh from models.dev with conditional HTTP caching,
+  validated offline fallback, provider-qualified model discovery, and per-run
+  pricing snapshots in PR #141. The tutorial now includes a no-cost catalog
+  preflight. Thanks @rodmarkun.
+- Added DeepSeek V4 Flash and V4 Pro pricing entries to the DeepSeek LLM pricing catalog.
+- Added controls to reduce evaluation stdout bloat: `JobConfig.eval_verbose` suppresses framework evaluation progress output, and `DatabaseConfig.max_stdout_log_chars` can persist only the tail of `stdout_log` metadata while keeping full logs on disk. Thanks @marcopirazzini.
+- Added SLURM support for `numeric_threads_per_job`, applying numeric-library thread caps consistently across local and SLURM evaluation jobs. Thanks @marcopirazzini.
+
+### Changed
+
+- Removed the automatic Claude Code Review pull-request workflow.
+
+### Fixed
+
+- Fixed Azure OpenAI LLM client construction to use the v1 base URL contract,
+  avoiding doubled `/openai/v1/openai` request paths and 404 responses reported
+  in issue #147.
+- Fixed OpenAI retry handling so ShinkaEvolve respects provider `retry_after` hints from transient Cloudflare/API 5xx responses.
+- Fixed DeepSeek V4 kwargs so ShinkaEvolve omits `temperature` for thinking-mode calls and includes model kwargs in retry error logs.
+- Fixed Claude Opus 4.8 kwargs so ShinkaEvolve omits the deprecated `temperature` parameter for Anthropic and Bedrock calls.
+- Fixed OpenAI reasoning model kwargs so ShinkaEvolve omits the deprecated `temperature` parameter for GPT-5-series Responses API calls.
+- Fixed DeepSeek reasoning model kwargs so ShinkaEvolve passes DeepSeek thinking-mode controls and `reasoning_effort` for V4 models.
+- Fixed Google GenAI client setup to detect broken IPv6 connectivity to Google API hosts and prefer IPv4 when needed.
+- Fixed LLM pricing boolean metadata normalization so reasoning-model flags handle whitespace and mixed CSV value types.
+- Fixed OpenAI Responses parsing to find assistant text by content type while ignoring reasoning/tool text when no message output exists.
+- Fixed quiet evaluation mode so `run_shinka_eval(..., verbose=False)` also suppresses result-save framework stdout while preserving the default verbose behavior.
+
 ## 0.0.7 - 2026-06-02
 
 ### Added
