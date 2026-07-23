@@ -84,3 +84,16 @@ class EvolutionConfig:
     prompt_epsilon: float = 0.1
     prompt_evo_top_k_programs: int = 3
     prompt_percentile_recompute_interval: int = 20
+
+    def __post_init__(self):
+        # [ml-opt] Under SHINKA_PROVIDER=claude_code the bandit arms must match the forced
+        # model_name, else prioritization.py raises "unknown arm name 'claude_code'".
+        import os
+        if os.environ.get("SHINKA_PROVIDER", "").lower() == "claude_code":
+            self.llm_models = ["claude_code"]
+            if self.meta_llm_models is not None:
+                self.meta_llm_models = ["claude_code"]
+            if self.novelty_llm_models is not None:
+                self.novelty_llm_models = ["claude_code"]
+            if self.prompt_llm_models is not None:
+                self.prompt_llm_models = ["claude_code"]

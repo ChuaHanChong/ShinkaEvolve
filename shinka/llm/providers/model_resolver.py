@@ -19,6 +19,16 @@ class ResolvedModel:
 
 def resolve_model_backend(model_name: str) -> ResolvedModel:
     """Resolve runtime backend info for known and dynamic model identifiers."""
+    # claude_code is intercepted before any client is built; resolve benignly here
+    # to satisfy llm.py's provider checks.
+    if model_name == "claude_code":
+        return ResolvedModel(
+            original_model_name="claude_code",
+            api_model_name="claude_code",
+            provider="claude_code",
+            base_url=None,
+        )
+
     if model_name.startswith(_HEADLESS_PREFIX):
         api_model_name = model_name
         agent = (
