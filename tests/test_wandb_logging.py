@@ -1,3 +1,4 @@
+import os
 import sys
 from types import ModuleType, SimpleNamespace
 
@@ -249,6 +250,10 @@ def test_wandb_logger_dry_run_and_resume_use_fake_wandb(tmp_path, monkeypatch):
 
 
 @pytest.mark.requires_secrets
+@pytest.mark.skipif(
+    not os.environ.get("WANDB_API_KEY"),
+    reason="requires a real WANDB_API_KEY secret for an authenticated online login",
+)
 def test_wandb_online_logging_with_authenticated_sdk(tmp_path, monkeypatch, caplog):
     import wandb
 
