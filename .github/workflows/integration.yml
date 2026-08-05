@@ -1,11 +1,10 @@
 name: Integration Tests
 
 on:
-  push:
-    branches:
-      - main
-  schedule:
-    - cron: "0 3 * * 1"
+  # push/schedule triggers disabled on this fork: the "Secret-Backed Integration
+  # Tests" job needs WANDB_API_KEY (and other provider keys) as repo secrets,
+  # which this fork doesn't have configured. Run manually via workflow_dispatch
+  # if/when those secrets are set.
   workflow_dispatch:
 
 jobs:
