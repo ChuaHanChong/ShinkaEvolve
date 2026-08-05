@@ -72,7 +72,11 @@ Install once before creating/running tasks:
 # Check if shinka is available in workspace environment
 python -c "import shinka"
 
-# If not; install from PyPI
+# Preferred: install the local submodule (required for SHINKA_PROVIDER=claude_code —
+# the PyPI package lacks the file_handoff_provider module used by the evolve skill)
+pip install -e ${CLAUDE_PLUGIN_ROOT}/skills/evolve/ShinkaEvolve/
+
+# Only if you don't need SHINKA_PROVIDER=claude_code file-handoff mode, PyPI works:
 pip install shinka-evolve
 
 # Or with uv
